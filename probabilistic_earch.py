@@ -2,9 +2,8 @@ import numpy as np
 import random
 def buildmap():
     nmap=np.random.random((50,50))
-    map=[]
+    map=np.full((50,50),'')
     for i in range(50):
-        map[i]=[]
         for j in range(50):
             if nmap[i][j]<0.2:
                 map[i][j]='flat'
@@ -12,8 +11,8 @@ def buildmap():
                 map[i][j]='hilly'
             elif nmap[i][j]<0.8:
                 map[i][j]='forested'
-            else map[i][j]='caves'
-
+            else:
+                map[i][j]='caves'
     return map
 def generate_target:
     x=random.randint(0,49)
