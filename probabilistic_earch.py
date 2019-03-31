@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import time
 def buildmap():
     nmap=np.random.random((50,50))
     map=[]
