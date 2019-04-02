@@ -1,0 +1,114 @@
+## 1 -- A Stationary Target
+### 1).compute $P(Target\;in\; cell_i | Observation_t \cap Failure\; in\; Cell_j)$
++    $P(Target\;in\; Cell_i | Observation_t \cap Failure\; in\; Cell_j)$, to compute this probability using __Beysian's Theorem__, we note it in a simple expression way as $P(Y\;|\;X,e)$
++    In this simpole expression: 
+     $$
+     \begin{align}
+     Y & = P(Target\;in\;Cell_i)\\
+     X &= P(Failure\;in\;Cell_j)\\
+     e&= Observation_t
+     \end{align}
+     $$
++    Processing:<br/>
+     * 
+     $P(Y\;|\;X,e)
+     =\frac{P(X\;|\;Y,e)*P(Y\;|\;e)}{P(X\;|\;e)}
+     $<br/>
+     In this equation, $P(X\;|\;Y,e)$ 
+     $$
+     \begin{align}
+     &= P(Failure\;in\;Cell_j\;|\;Target\;in\;Cell_i \cap Observation_t) \\
+     &= CurrentP(Cell_i)'s\;terrian\;type
+     \end{align}
+     $$ which is unchanged because it is signed with 4 different terrian type at the beginning.
+     *  
+     $P(Y\;|\;e)$ is changing all the time, and we record it into the belief[   ] until the target is found and break the loop.
+     
+     * 
+     $P(X\;|\;e)$<br/>
+     $$
+     \begin{align}
+     &= P(Failure\;in\;Cell_i\;|\;Target\;not\;in\;Cell_i \cap Observation_t) * P(Target\;not\;in\;Cell_i\;|\;Observation_t) \\
+     &= 1 * (1-P(Target\;in\;Cell_i))
+     \end{align}
+     $$
+     and we know that the probability of target in $cell_i$ is what we want to get and we keep updating and recording it in the belief[    ]
+
+### 2).find the probability that the target will be found in cell i if it is searched:
++    $P(Target\;found\;in\;Cell_i\;|\;Observation_t)$
+     $$
+     \begin{align}
+     &= P(Target\;found in\;Cell_i\;|\;Observation_t \cap Target\;in\;Cell_i) * P(Target\;in\;Cell_i\;|\;Observation_t) + P(Target\;found\;in\;Cell_i\;|\;Target\;not\;in\;Cell_i\cap Observation_t) * P(Target\;not\;in\;Cell_i\;|\;Ovservation_t)\\
+     &= P(Target\;found\;in\;Cell_i\;|\;Observation_t \cap Target\;in\;Cell_i) * P(Target\;in\;Cell_i\;|\;Observation_t)\\
+     &=(1-CurrentP(terrian's type)) * P(Target\;in\;Cell_i\;|\;Observation_t)
+     \end{align}
+     $$
+     For this fomula, with the initial probability:<br/>
+     $P(Target\;in\;Cell_i\;|\;Observation_0) = \frac{1}{2500}$
+     
+### 3).comparing rule1 and rule2:
++    Based on the previous two question's analysis, this question is becoming quite straight forward since we can just use the part (1)&(2) answer to solve the rule1 and the rule2 only re-compute the probability by multiplying the probability in belief with the terrian type probability.
+
++    For __rule1__, we have the code like:
+         point=np.where(self.belief_state == np.max(self.belief_state))
+     we just generally return an point where the probability in the belief is the maximum. The same as the requirement of rule1 which asks us to search teh cell with the highest probability of the containing target, which is choosing the highest probability from the belief set. 
++    For this rule, we run 50 times, and below is the data we collected.
+    
+| Terrian type | Rule1 AVG | Rule2 AVG |
+|:---:|:---:|:---:|
+|     Flat     | 
+|     Hill     |
+|    Forest    |
+|     Cave     |
+| Total AVG for different rule|
+     
+     
+     
++    For __rule2__, we have the code like:
+         matrix=np.zeros((self.dim,self.dim))
+         for i in range(self.dim):
+             for j in range(self.dim):
+                 p = self.belief_state[i][j]
+                 tp=map[i][j]
+                 if tp==1:
+                     matrix[i][j]=0.9*p
+                 elif tp==2:
+                     matrix[i][j]=0.7*p
+                 elif tp==3:
+                     matrix[i][j] = 0.3 * p
+                 elif tp==4:
+                     matrix[i][j] = 0.1 * p
+          point=np.where(matrix==np.max(matrix))
+     We first generated an all zero matrix fill with all position with '0'. Then retrieve probability from belief set; finally multiple them with corresponding terrian type probability.
+
++    For this rule, we run 50 times, and the collected data is in the above table.
+
++    To compare this two method, we can easily find out that the average of __rule2__ performs worse than __rule1__. The reason is that the rule2 is strictly searching target in an order which is: Flat --> Hill --> Forest --> Cave. Which may takes a large amount of time if the target is in Forest or Cave. However, for the __rule1__, the method keeps searching target in the highest probability of the belief set, which may jump into another terrian type frequently each time. Therefore, the __rule1__ performs better than __rule2__ overall. 
+
++    Additionally, if the target is in Flat or Hill, the rule2 may performs better than rule1; vice versa, if the target is in Forest or Cave especially, the rule1 is much better. However, even though it seems that the rule2 will perform better when the target is in Flat or Hill.<br/>$P(Target\;not\;found\;in\;Cell_i\;|\;Target\;in\;Cell_i)$ lowers the upper bound performance of rule2, since the probability of given target in Flat or Hill and not find it in that cell is too small, which is (0.1 , 0.3) respectively.
+
+### 4).search each constitute a single 'action':
++    In this problem, we create a way to calculate it as:
+$$
+priority = \frac{current_P}{manhattandist}
+$$
++    The $P(current_p)$ means the cell's current probability if the belief set. 
++    For this 'priority',  we have the code like:
+         matrix = np.zeros((self.dim, self.dim))
+         for i in range(self.dim):
+             for j in range(self.dim):
+                 p = self.belief_state[i][j]
+                 matrix[i][j] = p/manhattan(i,j,a,b)
+         point = np.where(matrix == np.max(matrix))
++    In this expression, the value of priority is greater means AI agent will search that cell before searching other cells. 
++    Additionally, we choose each unit movement as 1 action.
++    Furthermore, we collected data to generate a table as below:
+
+| Terrian type |  AVG(movement) |
+|:---:|:---:|:---:|
+|     Flat     | |
+|     Hill     | |
+|    Forest    | |
+|     Cave     | |
+| Total AVG for different terrian type|
+     
